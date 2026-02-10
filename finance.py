@@ -106,6 +106,18 @@ def add_expense(data: dict, current_user: User=Depends(get_current_user), sessio
     session.refresh(new_expense)
     return new_expense
 
+@app.delete("/expense", response_model=Expense)
+def delete_expense(expense_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
+    expense = session.exec(
+        select(Expense)
+        .where(Expense.id == expense_id and current_user.id ==Expense.owner_id)
+        ).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    session.delete(expense)
+    session.commit()
+    return expense
+
 @app.post("/income", response_model=Income)
 def add_income(data: dict, current_user: User=Depends(get_current_user), session: Session=Depends(get_session)):
     new_income = Income(
@@ -117,3 +129,15 @@ def add_income(data: dict, current_user: User=Depends(get_current_user), session
     session.commit()
     session.refresh(new_income)
     return new_income
+
+@app.delete("/income", response_model=Income)
+def delete_income(income_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
+    income_to_remove = session.exec(
+        select(Income)
+        .where(Income.id == income_id and current_user.id ==Income.owner_id)
+        ).first()
+    if not income_to_remove:
+        raise HTTPException(status_code=404, detail="Income not found")
+    session.delete(income_to_remove)
+    session.commit()
+    return income_to_remove
