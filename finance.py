@@ -106,6 +106,11 @@ def add_expense(data: dict, current_user: User=Depends(get_current_user), sessio
     session.refresh(new_expense)
     return new_expense
 
+@app.get("/expense", response_model=List[Expense])
+def get_all_expenses(current_user: User = Depends(get_current_user), session: Session=Depends(get_session)):
+    expenses = session.exec(select(Expense).where(Expense.owner_id == current_user.id)).all()
+    return expenses
+
 @app.delete("/expense", response_model=Expense)
 def delete_expense(expense_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
     expense = session.exec(
@@ -129,6 +134,11 @@ def add_income(data: dict, current_user: User=Depends(get_current_user), session
     session.commit()
     session.refresh(new_income)
     return new_income
+
+@app.get("/income", response_model=List[Income])
+def get_all_income(current_user: User = Depends(get_current_user), session: Session=Depends(get_session)):
+    income = session.exec(select(Income).where(Income.owner_id == current_user.id)).all()
+    return income
 
 @app.delete("/income", response_model=Income)
 def delete_income(income_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
