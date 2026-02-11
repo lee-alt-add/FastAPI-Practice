@@ -9,8 +9,23 @@ engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
 
 # Dependency to get DB session
 def get_session():
+    """Utility function to get a database session."""
+
     with Session(engine) as session:
         yield session
+
+def update_db(session: Session, instance, refresh: bool = True, delete: bool = False):
+    """Utility function to add, update, or delete an instance in the database."""
+
+    if delete:
+        session.delete(instance)
+    else:
+        session.add(instance)
+        
+    session.commit()
+    if refresh:
+        session.refresh(instance)
+    return instance
 
 # DB Tables
 class User(SQLModel, table=True):

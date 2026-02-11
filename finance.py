@@ -1,8 +1,8 @@
 from typing import List
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlmodel import select, Session, SQLModel
-from database import User, Expense, Income, engine, get_session
+from sqlmodel import select, Session, SQLModel, and_
+from database import User, Expense, Income, engine, get_session, update_db
 from security import get_session, get_current_user, create_access_token, pwd_context
 from pydantic import BaseModel
 
@@ -43,9 +43,7 @@ def add_expense(data: item_schema, current_user: User=Depends(get_current_user),
         amount=data.amount, 
         owner_id=current_user.id
         )
-    session.add(new_expense)
-    session.commit()
-    session.refresh(new_expense)
+    update_db(session, new_expense)
     return new_expense
 
 @app.get("/expense", response_model=List[Expense])
@@ -57,12 +55,25 @@ def get_all_expenses(current_user: User = Depends(get_current_user), session: Se
 def delete_expense(expense_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
     expense = session.exec(
         select(Expense)
-        .where(Expense.id == expense_id and current_user.id ==Expense.owner_id)
+        .where(and_(Expense.id == expense_id, Expense.owner_id == current_user.id))
         ).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
-    session.delete(expense)
-    session.commit()
+    update_db(session, expense, refresh=False, delete=True)
+    return expense
+
+@app.put("/expense/{expense_id}", response_model=Expense)
+def update_expense(expense_id: int, data: item_schema, current_user: User = Depends(get_current_user), session: Session=Depends(get_session)):
+    expense = session.exec(
+        select(Expense)        
+        .where(and_(Expense.id == expense_id, Expense.owner_id == current_user.id))
+        ).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    expense.description = data.description
+    expense.amount = data.amount
+    update_db(session, expense)
     return expense
 
 @app.post("/income", response_model=Income)
@@ -72,9 +83,7 @@ def add_income(data: item_schema, current_user: User=Depends(get_current_user), 
         amount=data.amount, 
         owner_id=current_user.id
         )
-    session.add(new_income)
-    session.commit()
-    session.refresh(new_income)
+    update_db(session, new_income)
     return new_income
 
 @app.get("/income", response_model=List[Income])
@@ -86,10 +95,23 @@ def get_all_income(current_user: User = Depends(get_current_user), session: Sess
 def delete_income(income_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
     income_to_remove = session.exec(
         select(Income)
-        .where(Income.id == income_id and current_user.id ==Income.owner_id)
+        .where(and_(Income.id == income_id, Income.owner_id == current_user.id))
         ).first()
     if not income_to_remove:
         raise HTTPException(status_code=404, detail="Income not found")
-    session.delete(income_to_remove)
-    session.commit()
+    update_db(session, income_to_remove, refresh=False, delete=True)
     return income_to_remove
+
+@app.put("/income/{income_id}", response_model=Income)
+def update_income(income_id: int, data: item_schema, current_user: User = Depends(get_current_user), session: Session=Depends(get_session)):
+    income = session.exec(
+        select(Income)        
+        .where(and_(Income.id == income_id, Income.owner_id == current_user.id))
+        ).first()
+    if not income:
+        raise HTTPException(status_code=404, detail="Income not found")
+    
+    income.description = data.description
+    income.amount = data.amount
+    update_db(session, income)
+    return income
