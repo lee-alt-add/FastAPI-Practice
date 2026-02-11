@@ -53,7 +53,7 @@ def get_all_expenses(current_user: User = Depends(get_current_user), session: Se
     expenses = session.exec(select(Expense).where(Expense.owner_id == current_user.id)).all()
     return expenses
 
-@app.delete("/expense", response_model=Expense)
+@app.delete("/expense/{expense_id}", response_model=Expense)
 def delete_expense(expense_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
     expense = session.exec(
         select(Expense)
@@ -82,7 +82,7 @@ def get_all_income(current_user: User = Depends(get_current_user), session: Sess
     income = session.exec(select(Income).where(Income.owner_id == current_user.id)).all()
     return income
 
-@app.delete("/income", response_model=Income)
+@app.delete("/income/{income_id}", response_model=Income)
 def delete_income(income_id: int, current_user: User= Depends(get_current_user), session: Session= Depends(get_session)):
     income_to_remove = session.exec(
         select(Income)
