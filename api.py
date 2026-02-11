@@ -1,4 +1,5 @@
 from typing import List
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select, Session, SQLModel, and_
@@ -7,12 +8,14 @@ from security import get_session, get_current_user, create_access_token, pwd_con
 from pydantic import BaseModel
 
 
-app = FastAPI()
 
-# Create tables on startup
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 class item_schema(BaseModel):
     description: str
